@@ -1,10 +1,16 @@
 """
 Chris Stadler
-myimage.py
+binarize.py
+
+for Python 2.7
 """
 
-import Image
-# import sys
+try:
+    import Image
+except ImportError:
+    print "requires Python Image Library"
+    exit(1)
+#import sys
 
 class MyImage:
     def __init__(self, filename):
@@ -13,7 +19,7 @@ class MyImage:
         self.data = list(self.grayscale.getdata())
         self.width, self.height = self.rawImage.size
 
-    def bin_global(self, e):
+    def bin_global(self, e, out_file):
         binData = []
         # Guess T by calculating global mean
         globalSum = 0
@@ -31,7 +37,8 @@ class MyImage:
             binData.append(newp)
         binIm = Image.new("L", (self.width, self.height))
         binIm.putdata(binData)
-        binIm.show()
+        #binIm.show()
+        binIm.save(out_file)
     
     def find_global_threshold(self, T, e):
         histogram = self.calculate_histogram()
@@ -50,7 +57,7 @@ class MyImage:
             histogram[pixel] += 1 # Increase the frequency for that intensity by 1
         return histogram
 
-    def bin_local(self, ngbr):
+    def bin_local(self, ngbr, out_file):
         binData = [] # Initialize a new data array
         # Keep track of the row and column indices
         row = 0
@@ -85,34 +92,13 @@ class MyImage:
                 col += 1
                 
         # Create new image with binarized data
-##        binIm = Image.new("L", (self.width, self.height))
-##        binIm.putdata(binData)
-##        binIm.show()
-        return binData
-        #binIm.save("bin_local.png")
-        
-    def show(self):
-        self.rawImage.show()
-
-    def bin_better(self, ngbr):
-        binData = self.bin_local(ngbr)
-        left = min(self.data)
-        right = max(self.data)
-        globalT = self.find_global_threshold(125, 1)
-        histogram = self.calculate_histogram()
-        newLeft = histogram_mean(histogram, left, globalT) + left
-        newRight = histogram_mean(histogram, globalT, right) + globalT
-        
-        for i in range(len(binData)):
-            if self.data[i] > newRight:
-                binData[i] = 255
-            elif self.data[i] < newLeft:
-                binData[i] = 0
-
         binIm = Image.new("L", (self.width, self.height))
         binIm.putdata(binData)
-        binIm.show()
+        #binIm.show()
+        binIm.save(out_file)
         
+    def show(self):
+        self.rawImage.show()   
 
 # Calculates the mean intensity between left and right (inclusive) of a histogram
 def histogram_mean(histogram, left, right):
@@ -126,15 +112,34 @@ def histogram_mean(histogram, left, right):
         i += 1
     return histsum/n
 
+
+# Command line interface
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description="Binarize an image")
+    parser.add_argument('input', help='filename of image to binarize')
+    parser.add_argument('--bin_local', '-l', help='output filename for local binarization')
+    parser.add_argument('--bin_global', '-g', help='output filename for global binarization')
+    args = parser.parse_args()
+    if args.input and (args.bin_local or args.bin_global):
+        im = MyImage(args.input)
+        if args.bin_local:
+            im.bin_local(2, args.bin_local)
+        if args.bin_global:
+            im.bin_global(1, args.bin_global)
+    else:
+        print "usage: <input file name> <'-l' for local binarization AND/OR '-g' for global> <output file name>"
+        exit(1)
+"""
+
 #Testing
 lena = MyImage("lena.png")
-#im = MyImage("C:\Users\Chris Stadler\Pictures\Art\Irises.jpg")
 #lena.show()
 #lena.bin_local(1)
 #lena.bin_global(1)
 #im.bin_global(1)
 #im.bin_local(2)
 lena.bin_better(2)
-
+"""
 
         
